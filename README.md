@@ -22,6 +22,9 @@ The CH32V003 series is a collection of industrial-grade general-purpose microcon
 ![USB_Knob_pic2.jpg](https://raw.githubusercontent.com/wagiminator/CH32V003-USB-Knob/main/documentation/USB_Knob_pic2.jpg)
 
 # Software
+## Software USB
+Since the CH32V003 lacks a hardware USB peripheral, USB functionality is handled in software. Charles Lohr's excellent implementation, [RV003USB](https://github.com/cnlohr/rv003usb), is used for this. It emulates a USB low-speed device using pin-change interrupts and bit-banging, with assembly code for the low-level protocol and some C code for higher-level functionality.
+
 ## Firmware Versions
 ### Volume Knob
 This firmware enables the USB Knob to control the volume of your computer. By turning the knob, you can increase or decrease the volume, while pressing the knob will mute or unmute the sound. The device is recognized as a USB HID consumer multimedia keyboard and should work immediately without the need for any driver installation.
@@ -37,6 +40,15 @@ To program the CH32V003 microcontroller, you will need a special programming dev
 
 ![CH32V003_wch-linke.jpg](https://raw.githubusercontent.com/wagiminator/Development-Boards/main/CH32V003F4P6_DevBoard/documentation/CH32V003_wch-linke.jpg)
 
+To use the WCH-LinkE on Linux, you need to grant access permissions beforehand by executing the following commands:
+```
+echo 'SUBSYSTEM=="usb", ATTR{idVendor}=="1a86", ATTR{idProduct}=="8010", MODE="666"' | sudo tee /etc/udev/rules.d/99-WCH-LinkE.rules
+echo 'SUBSYSTEM=="usb", ATTR{idVendor}=="1a86", ATTR{idProduct}=="8012", MODE="666"' | sudo tee -a /etc/udev/rules.d/99-WCH-LinkE.rules
+sudo udevadm control --reload-rules
+```
+
+On Windows, if you need to you can install the WinUSB driver over the WCH interface 1 using the [Zadig](https://zadig.akeo.ie/) tool.
+
 To upload the firmware, you need to ensure that the USB Knob is disconnected from USB. Then, you should make the following connections to the WCH-LinkE:
 
 ```
@@ -49,20 +61,14 @@ WCH-LinkE      USB-Knob
 ```
 
 If the blue LED on the WCH-LinkE remains illuminated once it is connected to the USB port, it means that the device is currently in ARM mode and must be switched to RISC-V mode initially. There are a few ways to accomplish this:
-- You can utilize the Python tool rvprog.py (with -v option), which is provided in the software/tools folder.
+- You can utilize the Python tool *rvprog.py* (with *-v* option), which is provided with the firmware in the *tools* folder.
 - Alternatively, you can select "WCH-LinkRV" in the software provided by WCH, such as MounRiver Studio or WCH-LinkUtility.
 - Another option is to hold down the ModeS button on the device while plugging it into the USB port.
 
 More information can be found in the [WCH-Link User Manual](http://www.wch-ic.com/downloads/WCH-LinkUserManual_PDF.html).
 
-## Compiling and Uploading Firmware (Linux)
-To use the WCH-LinkE on Linux, you need to grant access permissions beforehand by executing the following commands:
-```
-echo 'SUBSYSTEM=="usb", ATTR{idVendor}=="1a86", ATTR{idProduct}=="8010", MODE="666"' | sudo tee /etc/udev/rules.d/99-WCH-LinkE.rules
-echo 'SUBSYSTEM=="usb", ATTR{idVendor}=="1a86", ATTR{idProduct}=="8012", MODE="666"' | sudo tee -a /etc/udev/rules.d/99-WCH-LinkE.rules
-sudo udevadm control --reload-rules
-```
-
+## Compiling and Uploading Firmware using the Makefile
+### Linux
 Install the toolchain (GCC compiler, Python3, and PyUSB):
 ```
 sudo apt install build-essential libnewlib-dev gcc-riscv64-unknown-elf
@@ -70,24 +76,27 @@ sudo apt install python3 python3-pip
 python3 -m pip install pyusb
 ```
 
-Disconnect the USB cable from the USB Knob. Connect the USB-Knob via the 3-pin PROG header to the WCH-LinkE programming device. Open a terminal and navigate to the folder with the makefile. Run the following command to compile and upload:
+Disconnect the USB cable from the USB Knob. Connect the USB-Knob via the 3-pin PROG header to the WCH-LinkE programming device. Open a terminal and navigate to the folder with the *makefile*. Run the following command to compile and upload:
 ```
 make flash
 ```
 
 If you want to just upload the pre-compiled binary, run the following command instead:
 ```
-python3 ./tools/rvprog.py -f <firmware>.bin
+python3 tools/rvprog.py -f bin/<firmware>.bin
 ```
 
-## Uploading Firmware Binary (Windows/Mac)
-WCH offers the free but closed-source software [WCH-LinkUtility](https://www.wch.cn/downloads/WCH-LinkUtility_ZIP.html) to upload the precompiled hex-file with Windows. Select the "WCH-LinkRV" mode in the software, open the .hex file and upload it to the microcontroller.
+### Other Operating Systems
+Follow the instructions on [CNLohr's ch32v003fun page](https://github.com/cnlohr/ch32v003fun/wiki/Installation) to set up the toolchain on your respective operating system (for Windows, use WSL). Also, install [Python3](https://www.pythontutorial.net/getting-started/install-python/) and [pyusb](https://github.com/pyusb/pyusb). Compile and upload with "make flash". Note that I only have Debian-based Linux and have not tested it on other operating systems.
+
+## Uploading pre-compiled Firmware Binary
+WCH offers the free but closed-source software [WCH-LinkUtility](https://www.wch.cn/downloads/WCH-LinkUtility_ZIP.html) to upload the precompiled hex-file with Windows. Select the "WCH-LinkRV" mode in the software, open the *<firmware>.hex* file in the *bin* folder and upload it to the microcontroller.
 
 Alternatively, there is a platform-independent open-source tool called minichlink developed by Charles Lohr (CNLohr), which can be found [here](https://github.com/cnlohr/ch32v003fun/tree/master/minichlink). It can be used with Windows, Linux and Mac.
 
 If you have installed [Python3](https://www.pythontutorial.net/getting-started/install-python/) and [pyusb](https://github.com/pyusb/pyusb) on your system, you can also use the included Python tool rvprog.py:
 ```
-python3 ./tools/rvprog.py -f <firmware>.bin
+python3 tools/rvprog.py -f bin/<firmware>.bin
 ```
 
 # References, Links and Notes
